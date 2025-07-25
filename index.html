@@ -21,7 +21,8 @@
                         secondary: '#10B981',
                         expense: '#EF4444',
                         income: '#10B981',
-                        neutral: '#6B7280'
+                        neutral: '#6B7280',
+                        warning: '#F59E0B'
                     },
                     fontFamily: {
                         sans: ['Inter', 'system-ui', 'sans-serif'],
@@ -54,6 +55,11 @@
                 <h1 class="text-xl md:text-2xl font-bold text-gray-800">智能收支记录系统</h1>
             </div>
             <div class="flex items-center space-x-4">
+                <button id="paymentPlansBtn" class="flex items-center space-x-1 px-3 py-2 rounded-md hover:bg-gray-100 transition-custom relative">
+                    <i class="fa fa-calendar-check-o text-warning"></i>
+                    <span class="hidden md:inline">还款计划</span>
+                    <span id="paymentAlertBadge" class="absolute -top-1 -right-1 bg-warning text-white text-xs rounded-full h-4 w-4 flex items-center justify-center hidden">0</span>
+                </button>
                 <button id="statsBtn" class="flex items-center space-x-1 px-3 py-2 rounded-md hover:bg-gray-100 transition-custom">
                     <i class="fa fa-bar-chart text-primary"></i>
                     <span class="hidden md:inline">统计分析</span>
@@ -334,6 +340,98 @@
         </div>
     </div>
 
+    <!-- 预支出项和还款计划模态框 -->
+    <div id="paymentPlansModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-xl font-bold flex items-center">
+                    <i class="fa fa-calendar-check-o text-warning mr-2"></i>预支出项与还款计划
+                </h3>
+                <button id="closePaymentPlansBtn" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="p-6">
+                <!-- 添加预支出项表单 -->
+                <div class="bg-gray-50 p-5 rounded-lg mb-8">
+                    <h4 class="text-lg font-medium mb-4">添加预支出项</h4>
+                    <form id="paymentPlanForm" class="space-y-4">
+                        <input type="hidden" id="paymentPlanId">
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- 项目名称 -->
+                            <div>
+                                <label for="planName" class="block text-sm font-medium text-gray-700 mb-1">项目名称</label>
+                                <input type="text" id="planName" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-warning focus:border-warning transition-custom" placeholder="如：房贷、车贷、信用卡分期">
+                            </div>
+                            
+                            <!-- 总金额 -->
+                            <div>
+                                <label for="totalAmount" class="block text-sm font-medium text-gray-700 mb-1">总金额 (¥)</label>
+                                <input type="number" id="totalAmount" step="0.01" min="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-warning focus:border-warning transition-custom" placeholder="总欠款金额">
+                            </div>
+                            
+                            <!-- 每月还款额 -->
+                            <div>
+                                <label for="monthlyPayment" class="block text-sm font-medium text-gray-700 mb-1">每月还款额 (¥)</label>
+                                <input type="number" id="monthlyPayment" step="0.01" min="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-warning focus:border-warning transition-custom" placeholder="每月需还款金额">
+                            </div>
+                            
+                            <!-- 还款日 -->
+                            <div>
+                                <label for="paymentDay" class="block text-sm font-medium text-gray-700 mb-1">每月还款日</label>
+                                <input type="number" id="paymentDay" min="1" max="31" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-warning focus:border-warning transition-custom" placeholder="如：10表示每月10号">
+                            </div>
+                            
+                            <!-- 开始日期 -->
+                            <div>
+                                <label for="startDate" class="block text-sm font-medium text-gray-700 mb-1">开始日期</label>
+                                <input type="date" id="startDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-warning focus:border-warning transition-custom">
+                            </div>
+                            
+                            <!-- 结束日期 -->
+                            <div>
+                                <label for="endDate" class="block text-sm font-medium text-gray-700 mb-1">结束日期</label>
+                                <input type="date" id="endDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-warning focus:border-warning transition-custom">
+                            </div>
+                        </div>
+                        
+                        <!-- 备注 -->
+                        <div>
+                            <label for="planDescription" class="block text-sm font-medium text-gray-700 mb-1">备注</label>
+                            <textarea id="planDescription" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-warning focus:border-warning transition-custom" placeholder="添加备注信息..."></textarea>
+                        </div>
+                        
+                        <!-- 按钮组 -->
+                        <div class="flex gap-3 pt-2">
+                            <button type="submit" class="bg-warning hover:bg-warning/90 text-white py-2 px-6 rounded-lg transition-custom flex items-center justify-center">
+                                <i class="fa fa-save mr-2"></i>保存计划
+                            </button>
+                            <button type="button" id="clearPlanFormBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-6 rounded-lg transition-custom flex items-center justify-center">
+                                <i class="fa fa-eraser mr-2"></i>清空
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- 还款计划列表 -->
+                <div>
+                    <h4 class="text-lg font-medium mb-4">当前还款计划</h4>
+                    
+                    <div id="paymentPlansList" class="space-y-4">
+                        <!-- 还款计划将通过JavaScript动态生成 -->
+                        <div class="text-center py-10 text-gray-500">
+                            <i class="fa fa-calendar-o text-4xl mb-3 text-gray-300"></i>
+                            <p>暂无预支出项和还款计划</p>
+                            <p class="text-sm mt-1">添加您的第一个还款计划吧</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 确认删除模态框 -->
     <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-xl w-full max-w-md p-6">
@@ -352,6 +450,24 @@
         </div>
     </div>
 
+    <!-- 确认删除还款计划模态框 -->
+    <div id="deletePlanModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl w-full max-w-md p-6">
+            <h3 class="text-xl font-bold mb-4 flex items-center text-red-500">
+                <i class="fa fa-exclamation-triangle mr-2"></i>确认删除
+            </h3>
+            <p class="mb-6">您确定要删除这个还款计划吗？此操作无法撤销。</p>
+            <div class="flex space-x-3">
+                <button id="cancelDeletePlanBtn" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded-lg transition-custom">
+                    取消
+                </button>
+                <button id="confirmDeletePlanBtn" class="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg transition-custom">
+                    确认删除
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- 通知提示 -->
     <div id="notification" class="fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center max-w-sm z-50">
         <i id="notificationIcon" class="mr-3 text-xl"></i>
@@ -362,24 +478,27 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
     
     <script>
-        // 收支分类数据 - 已集成扩展的分类列表
+        // 收支分类数据
         const categories = {
-            expense: ['餐饮', '交通', '住房', '购物', '娱乐', '医疗', '教育', '通讯费', '水电费', '其他'],
+            expense: ['餐饮', '交通', '住房', '购物', '娱乐', '医疗', '教育', '通讯费', '水电费', '贷款还款', '其他'],
             income: ['工资', '奖金', '投资收益', '兼职', '礼金', '退款', '其他']
         };
         
         // 全局变量
         let transactions = [];
+        let paymentPlans = []; // 预支出项和还款计划
         let currentPage = 1;
         const itemsPerPage = 10;
         let filteredTransactions = [];
         let transactionToDelete = null;
+        let planToDelete = null;
         let trendChart = null;
         let expenseCategoryChart = null;
         let incomeCategoryChart = null;
         
         // DOM元素
         const elements = {
+            // 原有元素
             transactionForm: document.getElementById('transactionForm'),
             transactionId: document.getElementById('transactionId'),
             dateInput: document.getElementById('date'),
@@ -424,7 +543,27 @@
             confirmDeleteBtn: document.getElementById('confirmDeleteBtn'),
             notification: document.getElementById('notification'),
             notificationIcon: document.getElementById('notificationIcon'),
-            notificationMessage: document.getElementById('notificationMessage')
+            notificationMessage: document.getElementById('notificationMessage'),
+            
+            // 新增的还款计划相关元素
+            paymentPlansBtn: document.getElementById('paymentPlansBtn'),
+            paymentPlansModal: document.getElementById('paymentPlansModal'),
+            closePaymentPlansBtn: document.getElementById('closePaymentPlansBtn'),
+            paymentPlanForm: document.getElementById('paymentPlanForm'),
+            paymentPlanId: document.getElementById('paymentPlanId'),
+            planName: document.getElementById('planName'),
+            totalAmount: document.getElementById('totalAmount'),
+            monthlyPayment: document.getElementById('monthlyPayment'),
+            paymentDay: document.getElementById('paymentDay'),
+            startDate: document.getElementById('startDate'),
+            endDate: document.getElementById('endDate'),
+            planDescription: document.getElementById('planDescription'),
+            clearPlanFormBtn: document.getElementById('clearPlanFormBtn'),
+            paymentPlansList: document.getElementById('paymentPlansList'),
+            paymentAlertBadge: document.getElementById('paymentAlertBadge'),
+            deletePlanModal: document.getElementById('deletePlanModal'),
+            cancelDeletePlanBtn: document.getElementById('cancelDeletePlanBtn'),
+            confirmDeletePlanBtn: document.getElementById('confirmDeletePlanBtn')
         };
         
         // 初始化
@@ -432,15 +571,21 @@
             // 设置默认日期为今天
             const today = new Date().toISOString().split('T')[0];
             elements.dateInput.value = today;
+            elements.startDate.value = today;
             
             // 初始化分类选择框
             populateCategories('expense');
             
-            // 加载本地存储的交易记录
+            // 加载本地存储的数据
             loadTransactions();
+            loadPaymentPlans();
             
-            // 渲染交易记录表格
+            // 渲染交易记录表格和还款计划
             renderTransactions();
+            renderPaymentPlans();
+            
+            // 检查并显示还款预警
+            checkPaymentAlerts();
             
             // 初始化事件监听器
             initEventListeners();
@@ -448,46 +593,33 @@
         
         // 初始化事件监听器
         function initEventListeners() {
-            // 表单提交
+            // 原有事件监听器
             elements.transactionForm.addEventListener('submit', handleFormSubmit);
-            
-            // 清空表单
             elements.clearFormBtn.addEventListener('click', clearForm);
             
-            // 切换类型时更新分类
             elements.typeRadios.forEach(radio => {
                 radio.addEventListener('change', (e) => {
                     populateCategories(e.target.value);
                 });
             });
             
-            // 导入图片按钮
             elements.importImageBtn.addEventListener('click', () => {
                 elements.imageUploadSection.classList.toggle('hidden');
             });
             
-            // 图片上传
             elements.imageUpload.addEventListener('change', handleImageUpload);
-            
-            // 处理图片识别
             elements.processImageBtn.addEventListener('click', processImage);
-            
-            // 应用OCR结果
             elements.applyOcrResultsBtn.addEventListener('click', applyOcrResults);
             
-            // 搜索和筛选
             elements.searchInput.addEventListener('input', filterTransactions);
             elements.filterType.addEventListener('change', filterTransactions);
             
-            // 分页
             elements.prevPageBtn.addEventListener('click', goToPrevPage);
             elements.nextPageBtn.addEventListener('click', goToNextPage);
             
-            // 统计分析
             elements.statsBtn.addEventListener('click', showStats);
             elements.closeStatsBtn.addEventListener('click', hideStats);
             
-            // 时间筛选
             elements.timeFilterBtns.forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     elements.timeFilterBtns.forEach(b => {
@@ -500,12 +632,20 @@
                 });
             });
             
-            // 导出数据
             elements.exportBtn.addEventListener('click', exportData);
             
-            // 删除确认
             elements.cancelDeleteBtn.addEventListener('click', hideDeleteModal);
             elements.confirmDeleteBtn.addEventListener('click', confirmDelete);
+            
+            // 新增的还款计划相关事件监听器
+            elements.paymentPlansBtn.addEventListener('click', showPaymentPlans);
+            elements.closePaymentPlansBtn.addEventListener('click', hidePaymentPlans);
+            
+            elements.paymentPlanForm.addEventListener('submit', handlePaymentPlanSubmit);
+            elements.clearPlanFormBtn.addEventListener('click', clearPlanForm);
+            
+            elements.cancelDeletePlanBtn.addEventListener('click', hideDeletePlanModal);
+            elements.confirmDeletePlanBtn.addEventListener('click', confirmDeletePlan);
         }
         
         // 填充分类选择框
@@ -534,6 +674,23 @@
         // 保存交易记录
         function saveTransactions() {
             localStorage.setItem('expenseTrackerTransactions', JSON.stringify(transactions));
+        }
+        
+        // 加载还款计划
+        function loadPaymentPlans() {
+            const savedPlans = localStorage.getItem('expenseTrackerPaymentPlans');
+            if (savedPlans) {
+                paymentPlans = JSON.parse(savedPlans);
+            } else {
+                paymentPlans = [];
+            }
+        }
+        
+        // 保存还款计划
+        function savePaymentPlans() {
+            localStorage.setItem('expenseTrackerPaymentPlans', JSON.stringify(paymentPlans));
+            // 保存后检查预警
+            checkPaymentAlerts();
         }
         
         // 处理表单提交
@@ -590,18 +747,108 @@
             clearForm();
         }
         
+        // 处理还款计划提交
+        function handlePaymentPlanSubmit(e) {
+            e.preventDefault();
+            
+            // 获取表单数据
+            const id = elements.paymentPlanId.value;
+            const name = elements.planName.value;
+            const totalAmount = parseFloat(elements.totalAmount.value);
+            const monthlyPayment = parseFloat(elements.monthlyPayment.value);
+            const paymentDay = parseInt(elements.paymentDay.value);
+            const startDate = elements.startDate.value;
+            const endDate = elements.endDate.value;
+            const description = elements.planDescription.value;
+            
+            // 验证数据
+            if (!name) {
+                showNotification('请输入项目名称', 'error');
+                return;
+            }
+            
+            if (isNaN(totalAmount) || totalAmount <= 0) {
+                showNotification('请输入有效的总金额', 'error');
+                return;
+            }
+            
+            if (isNaN(monthlyPayment) || monthlyPayment <= 0) {
+                showNotification('请输入有效的每月还款额', 'error');
+                return;
+            }
+            
+            if (isNaN(paymentDay) || paymentDay < 1 || paymentDay > 31) {
+                showNotification('请输入有效的还款日（1-31）', 'error');
+                return;
+            }
+            
+            if (!startDate) {
+                showNotification('请选择开始日期', 'error');
+                return;
+            }
+            
+            if (!endDate) {
+                showNotification('请选择结束日期', 'error');
+                return;
+            }
+            
+            if (new Date(startDate) > new Date(endDate)) {
+                showNotification('开始日期不能晚于结束日期', 'error');
+                return;
+            }
+            
+            // 创建还款计划对象
+            const plan = {
+                name,
+                totalAmount,
+                monthlyPayment,
+                paymentDay,
+                startDate,
+                endDate,
+                description,
+                createdAt: new Date().toISOString()
+            };
+            
+            if (id) {
+                // 更新现有计划
+                const index = paymentPlans.findIndex(p => p.id === id);
+                if (index !== -1) {
+                    plan.id = id;
+                    paymentPlans[index] = plan;
+                    showNotification('还款计划已更新', 'success');
+                }
+            } else {
+                // 添加新计划
+                plan.id = generateId();
+                paymentPlans.push(plan);
+                showNotification('还款计划已添加', 'success');
+            }
+            
+            // 保存并重新渲染
+            savePaymentPlans();
+            renderPaymentPlans();
+            clearPlanForm();
+        }
+        
         // 生成唯一ID
         function generateId() {
             return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
         }
         
-        // 清空表单
+        // 清空交易表单
         function clearForm() {
             elements.transactionForm.reset();
             elements.transactionId.value = '';
             elements.dateInput.value = new Date().toISOString().split('T')[0];
             document.querySelector('input[name="type"][value="expense"]').checked = true;
             populateCategories('expense');
+        }
+        
+        // 清空还款计划表单
+        function clearPlanForm() {
+            elements.paymentPlanForm.reset();
+            elements.paymentPlanId.value = '';
+            elements.startDate.value = new Date().toISOString().split('T')[0];
         }
         
         // 渲染交易记录表格
@@ -681,6 +928,190 @@
             elements.nextPageBtn.disabled = endIndex >= filteredTransactions.length;
         }
         
+        // 渲染还款计划列表
+        function renderPaymentPlans() {
+            if (paymentPlans.length === 0) {
+                elements.paymentPlansList.innerHTML = `
+                    <div class="text-center py-10 text-gray-500">
+                        <i class="fa fa-calendar-o text-4xl mb-3 text-gray-300"></i>
+                        <p>暂无预支出项和还款计划</p>
+                        <p class="text-sm mt-1">添加您的第一个还款计划吧</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 清空列表
+            elements.paymentPlansList.innerHTML = '';
+            
+            // 按下次还款日期排序
+            const sortedPlans = [...paymentPlans].sort((a, b) => {
+                const nextA = getNextPaymentDate(a);
+                const nextB = getNextPaymentDate(b);
+                return new Date(nextA) - new Date(nextB);
+            });
+            
+            // 添加计划项
+            sortedPlans.forEach(plan => {
+                const daysToPayment = getDaysToNextPayment(plan);
+                const nextPaymentDate = getNextPaymentDate(plan);
+                const isActive = new Date(plan.startDate) <= new Date() && new Date(plan.endDate) >= new Date();
+                
+                let statusClass = 'bg-gray-100 text-gray-800';
+                let statusText = '已结束';
+                
+                if (isActive) {
+                    statusText = '进行中';
+                    statusClass = 'bg-blue-100 text-blue-800';
+                    
+                    if (daysToPayment <= 3 && daysToPayment >= 0) {
+                        statusText = `即将到期（${daysToPayment}天后）`;
+                        statusClass = 'bg-warning/20 text-warning';
+                    } else if (daysToPayment < 0) {
+                        statusText = '已逾期';
+                        statusClass = 'bg-red-100 text-red-800';
+                    }
+                }
+                
+                const planElement = document.createElement('div');
+                planElement.className = 'border border-gray-200 rounded-lg p-4 hover:shadow-md transition-custom';
+                
+                planElement.innerHTML = `
+                    <div class="flex flex-col md:flex-row md:items-center justify-between mb-3">
+                        <h5 class="text-lg font-medium">${plan.name}</h5>
+                        <span class="px-2 py-1 text-xs rounded-full mt-1 md:mt-0 ${statusClass}">${statusText}</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3 text-sm">
+                        <div>
+                            <p class="text-gray-500">总金额</p>
+                            <p class="font-medium">¥${plan.totalAmount.toFixed(2)}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500">每月还款</p>
+                            <p class="font-medium text-expense">¥${plan.monthlyPayment.toFixed(2)}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500">下次还款</p>
+                            <p class="font-medium ${daysToPayment <= 3 && daysToPayment >= 0 ? 'text-warning' : daysToPayment < 0 ? 'text-red-500' : ''}">
+                                ${formatDate(nextPaymentDate)}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="text-sm text-gray-600 mb-4">
+                        <p><span class="font-medium">还款周期：</span>${formatDate(plan.startDate)} - ${formatDate(plan.endDate)}</p>
+                        ${plan.description ? `<p><span class="font-medium">备注：</span>${plan.description}</p>` : ''}
+                    </div>
+                    
+                    <div class="flex justify-end space-x-2">
+                        <button class="edit-plan-btn text-primary hover:text-primary/80 px-3 py-1 text-sm rounded" data-id="${plan.id}">
+                            <i class="fa fa-pencil mr-1"></i>编辑
+                        </button>
+                        <button class="delete-plan-btn text-red-500 hover:text-red-600 px-3 py-1 text-sm rounded" data-id="${plan.id}">
+                            <i class="fa fa-trash mr-1"></i>删除
+                        </button></button>
+                        <button class="add-transaction-btn bg-primary hover:bg-primary/90 text-white px-3 py-1 text-sm rounded" data-id="${plan.id}">
+                            <i class="fa fa-plus mr-1"></i>记录还款
+                        </button>
+                    </div>
+                `;
+                
+                elements.paymentPlansList.appendChild(planElement);
+            });
+            
+            // 添加事件监听器
+            document.querySelectorAll('.edit-plan-btn').forEach(btn => {
+                btn.addEventListener('click', () => editPaymentPlan(btn.dataset.id));
+            });
+            
+            document.querySelectorAll('.delete-plan-btn').forEach(btn => {
+                btn.addEventListener('click', () => showDeletePlanModal(btn.dataset.id));
+            });
+            
+            document.querySelectorAll('.add-transaction-btn').forEach(btn => {
+                btn.addEventListener('click', () => addPaymentTransaction(btn.dataset.id));
+            });
+        }
+        
+        // 获取下次还款日期
+        function getNextPaymentDate(plan) {
+            const today = new Date();
+            const paymentDay = plan.paymentDay;
+            
+            // 计算本月还款日期
+            let nextPayment = new Date(today.getFullYear(), today.getMonth(), paymentDay);
+            
+            // 如果本月还款日已过，取下个月
+            if (nextPayment < today) {
+                nextPayment = new Date(today.getFullYear(), today.getMonth() + 1, paymentDay);
+            }
+            
+            // 检查是否超过结束日期
+            if (nextPayment > new Date(plan.endDate)) {
+                return plan.endDate;
+            }
+            
+            return nextPayment.toISOString().split('T')[0];
+        }
+        
+        // 计算距离下次还款还有多少天
+        function getDaysToNextPayment(plan) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const nextPayment = new Date(getNextPaymentDate(plan));
+            nextPayment.setHours(0, 0, 0, 0);
+            
+            const diffTime = nextPayment - today;
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+        
+        // 检查还款预警
+        function checkPaymentAlerts() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // 找出3天内需要还款的计划
+            const upcomingPayments = paymentPlans.filter(plan => {
+                const nextPayment = new Date(getNextPaymentDate(plan));
+                nextPayment.setHours(0, 0, 0, 0);
+                
+                const isActive = new Date(plan.startDate) <= today && new Date(plan.endDate) >= today;
+                const diffDays = Math.ceil((nextPayment - today) / (1000 * 60 * 60 * 24));
+                
+                return isActive && diffDays >= 0 && diffDays <= 3;
+            });
+            
+            // 找出已逾期的计划
+            const overduePayments = paymentPlans.filter(plan => {
+                const nextPayment = new Date(getNextPaymentDate(plan));
+                nextPayment.setHours(0, 0, 0, 0);
+                
+                const isActive = new Date(plan.startDate) <= today && new Date(plan.endDate) >= today;
+                const diffDays = Math.ceil((nextPayment - today) / (1000 * 60 * 60 * 24));
+                
+                return isActive && diffDays < 0;
+            });
+            
+            const alertCount = upcomingPayments.length + overduePayments.length;
+            
+            // 更新预警徽章
+            if (alertCount > 0) {
+                elements.paymentAlertBadge.textContent = alertCount;
+                elements.paymentAlertBadge.classList.remove('hidden');
+                
+                // 显示通知
+                if (overduePayments.length > 0) {
+                    showNotification(`有${overduePayments.length}个还款计划已逾期，请及时处理`, 'error');
+                } else if (upcomingPayments.length > 0) {
+                    showNotification(`有${upcomingPayments.length}个还款计划将在3天内到期`, 'warning');
+                }
+            } else {
+                elements.paymentAlertBadge.classList.add('hidden');
+            }
+        }
+        
         // 格式化日期
         function formatDate(dateString) {
             const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
@@ -706,6 +1137,54 @@
                 
                 // 滚动到表单
                 elements.transactionForm.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+        
+        // 编辑还款计划
+        function editPaymentPlan(id) {
+            const plan = paymentPlans.find(p => p.id === id);
+            if (plan) {
+                elements.paymentPlanId.value = plan.id;
+                elements.planName.value = plan.name;
+                elements.totalAmount.value = plan.totalAmount;
+                elements.monthlyPayment.value = plan.monthlyPayment;
+                elements.paymentDay.value = plan.paymentDay;
+                elements.startDate.value = plan.startDate;
+                elements.endDate.value = plan.endDate;
+                elements.planDescription.value = plan.description || '';
+                
+                // 滚动到表单
+                elements.paymentPlanForm.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+        
+        // 添加还款交易记录
+        function addPaymentTransaction(planId) {
+            const plan = paymentPlans.find(p => p.id === planId);
+            if (plan) {
+                // 隐藏还款计划模态框
+                hidePaymentPlans();
+                
+                // 填充交易表单
+                elements.transactionId.value = '';
+                elements.dateInput.value = new Date().toISOString().split('T')[0];
+                elements.amountInput.value = plan.monthlyPayment;
+                document.querySelector('input[name="type"][value="expense"]').checked = true;
+                populateCategories('expense');
+                
+                // 等待DOM更新后设置分类为贷款还款
+                setTimeout(() => {
+                    const loanOption = Array.from(elements.categorySelect.options).find(
+                        option => option.value === '贷款还款'
+                    );
+                    if (loanOption) {
+                        elements.categorySelect.value = '贷款还款';
+                    }
+                    elements.descriptionInput.value = `还款：${plan.name}`;
+                    
+                    // 滚动到表单
+                    elements.transactionForm.scrollIntoView({ behavior: 'smooth' });
+                }, 0);
             }
         }
         
@@ -874,7 +1353,7 @@
             }
             
             // 尝试判断是收入还是支出
-            const expenseKeywords = ['支出', '消费', '付款', '花费', '扣除', '买', '购', '付', '通讯费', '水电费'];
+            const expenseKeywords = ['支出', '消费', '付款', '花费', '扣除', '买', '购', '付', '通讯费', '水电费', '还款', '贷款'];
             const incomeKeywords = ['收入', '进账', '收款', '工资', '奖金', '赚', '收', '礼金', '退款'];
             
             for (const keyword of incomeKeywords) {
@@ -929,6 +1408,42 @@
         // 隐藏统计分析
         function hideStats() {
             elements.statsModal.classList.add('hidden');
+        }
+        
+        // 显示还款计划
+        function showPaymentPlans() {
+            elements.paymentPlansModal.classList.remove('hidden');
+        }
+        
+        // 隐藏还款计划
+        function hidePaymentPlans() {
+            elements.paymentPlansModal.classList.add('hidden');
+        }
+        
+        // 显示删除还款计划确认框
+        function showDeletePlanModal(id) {
+            planToDelete = id;
+            elements.deletePlanModal.classList.remove('hidden');
+        }
+        
+        // 隐藏删除还款计划确认框
+        function hideDeletePlanModal() {
+            planToDelete = null;
+            elements.deletePlanModal.classList.add('hidden');
+        }
+        
+        // 确认删除还款计划
+        function confirmDeletePlan() {
+            if (planToDelete) {
+                const index = paymentPlans.findIndex(p => p.id === planToDelete);
+                if (index !== -1) {
+                    paymentPlans.splice(index, 1);
+                    savePaymentPlans();
+                    renderPaymentPlans();
+                    showNotification('还款计划已删除', 'success');
+                }
+            }
+            hideDeletePlanModal();
         }
         
         // 更新统计数据
@@ -1118,7 +1633,7 @@
                             data: Object.values(expenseCategories).map(v => v.toFixed(0)),
                             backgroundColor: [
                                 '#EF4444', '#F97316', '#EAB308', '#10B981', 
-                                '#3B82F6', '#8B5CF6', '#EC4899', '#6B7280', '#84CC16', '#6366F1'
+                                '#3B82F6', '#8B5CF6', '#EC4899', '#6B7280', '#84CC16', '#6366F1', '#F59E0B'
                             ]
                         }]
                     },
@@ -1183,35 +1698,54 @@
         
         // 导出数据
         function exportData() {
-            if (transactions.length === 0) {
+            if (transactions.length === 0 && paymentPlans.length === 0) {
                 showNotification('没有数据可导出', 'warning');
                 return;
             }
             
-            // 转换为CSV格式
-            const headers = ['日期', '金额', '类型', '分类', '描述'];
-            const csvRows = [
-                headers.join(','),
-                ...transactions.map(t => {
-                    const typeText = t.type === 'expense' ? '支出' : '收入';
-                    return [
-                        t.date,
-                        t.amount,
-                        typeText,
-                        t.category,
-                        t.description || ''
-                    ].map(field => `"${field}"`).join(',');
-                })
-            ];
+            // 询问导出类型
+            const exportType = confirm('是否同时导出还款计划数据？\n点击"确定"导出所有数据，点击"取消"仅导出收支记录');
             
-            const csvString = csvRows.join('\n');
-            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            let csvContent = '';
+            
+            // 导出收支记录
+            csvContent += '=== 收支记录 ===\n';
+            csvContent += '日期,金额,类型,分类,描述\n';
+            transactions.forEach(t => {
+                const typeText = t.type === 'expense' ? '支出' : '收入';
+                csvContent += [
+                    t.date,
+                    t.amount,
+                    typeText,
+                    t.category,
+                    t.description || ''
+                ].map(field => `"${field}"`).join(',') + '\n';
+            });
+            
+            // 如果需要，导出还款计划
+            if (exportType && paymentPlans.length > 0) {
+                csvContent += '\n=== 还款计划 ===\n';
+                csvContent += '项目名称,总金额,每月还款额,还款日,开始日期,结束日期,备注\n';
+                paymentPlans.forEach(plan => {
+                    csvContent += [
+                        plan.name,
+                        plan.totalAmount,
+                        plan.monthlyPayment,
+                        plan.paymentDay,
+                        plan.startDate,
+                        plan.endDate,
+                        plan.description || ''
+                    ].map(field => `"${field}"`).join(',') + '\n';
+                });
+            }
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             
             // 创建下载链接
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.setAttribute('href', url);
-            link.setAttribute('download', `收支记录_${new Date().toLocaleDateString()}.csv`);
+            link.setAttribute('download', `收支数据_${new Date().toLocaleDateString()}.csv`);
             link.style.visibility = 'hidden';
             
             document.body.appendChild(link);
@@ -1266,10 +1800,11 @@
                 elements.notificationIcon.className = 'mr-3 text-xl fa fa-info-circle';
             }
             
-            // 3秒后隐藏通知
+            // 5秒后隐藏通知（预警通知保留时间更长）
+            const timeout = type === 'warning' || type === 'error' ? 8000 : 3000;
             setTimeout(() => {
                 elements.notification.className = 'fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center max-w-sm z-50';
-            }, 3000);
+            }, timeout);
         }
         
         // 页面加载完成后初始化
