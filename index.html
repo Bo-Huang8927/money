@@ -68,6 +68,10 @@
                     <i class="fa fa-download text-primary"></i>
                     <span class="hidden md:inline">导出数据</span>
                 </button>
+                <button id="passwordSettingsBtn" class="flex items-center space-x-1 px-3 py-2 rounded-md hover:bg-gray-100 transition-custom">
+                    <i class="fa fa-lock text-primary"></i>
+                    <span class="hidden md:inline">密码设置</span>
+                </button>
             </div>
         </div>
     </header>
@@ -432,6 +436,82 @@
         </div>
     </div>
 
+    <!-- 密码验证模态框 -->
+    <div id="passwordModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl w-full max-w-md p-6">
+            <h3 class="text-xl font-bold mb-4 flex items-center text-primary">
+                <i class="fa fa-lock mr-2"></i>请输入密码
+            </h3>
+            <p class="mb-4 text-gray-600">该功能需要密码验证才能访问</p>
+            
+            <form id="passwordForm" class="space-y-4">
+                <div>
+                    <label for="passwordInput" class="block text-sm font-medium text-gray-700 mb-1">密码</label>
+                    <input type="password" id="passwordInput" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom" placeholder="请输入密码">
+                </div>
+                
+                <div class="mt-2 text-right">
+                    <button id="forgotPasswordBtn" type="button" class="text-sm text-primary hover:text-primary/80">
+                        忘记密码？
+                    </button>
+                </div>
+                
+                <div class="flex items-center">
+                    <input type="checkbox" id="rememberPassword" class="text-primary focus:ring-primary">
+                    <label for="rememberPassword" class="ml-2 text-sm text-gray-600">本次会话保持登录状态</label>
+                </div>
+                
+                <div class="pt-2">
+                    <button type="submit" class="w-full bg-primary hover:bg-primary/90 text-white py-2 px-4 rounded-lg transition-custom">
+                        验证密码
+                    </button>
+                </div>
+            </form>
+            
+            <p id="passwordError" class="mt-4 text-sm text-red-500 hidden">密码错误，请重试</p>
+        </div>
+    </div>
+
+    <!-- 密码设置模态框 -->
+    <div id="passwordSettingsModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl w-full max-w-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold flex items-center text-primary">
+                    <i class="fa fa-cog mr-2"></i>密码设置
+                </h3>
+                <button id="closePasswordSettingsBtn" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <form id="passwordSettingsForm" class="space-y-4">
+                <div id="currentPasswordGroup" class="hidden">
+                    <label for="currentPassword" class="block text-sm font-medium text-gray-700 mb-1">当前密码</label>
+                    <input type="password" id="currentPassword" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom" placeholder="请输入当前密码">
+                </div>
+                
+                <div>
+                    <label for="newPassword" class="block text-sm font-medium text-gray-700 mb-1">新密码</label>
+                    <input type="password" id="newPassword" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom" placeholder="请设置新密码（至少6位）">
+                </div>
+                
+                <div>
+                    <label for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-1">确认新密码</label>
+                    <input type="password" id="confirmPassword" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-custom" placeholder="请再次输入新密码">
+                </div>
+                
+                <div class="pt-2">
+                    <button type="submit" class="w-full bg-primary hover:bg-primary/90 text-white py-2 px-4 rounded-lg transition-custom">
+                        保存设置
+                    </button>
+                </div>
+            </form>
+            
+            <p id="passwordSettingsError" class="mt-4 text-sm text-red-500 hidden"></p>
+            <p id="passwordSettingsSuccess" class="mt-4 text-sm text-green-500 hidden"></p>
+        </div>
+    </div>
+
     <!-- 确认删除模态框 -->
     <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-xl w-full max-w-md p-6">
@@ -495,6 +575,8 @@
         let trendChart = null;
         let expenseCategoryChart = null;
         let incomeCategoryChart = null;
+        let isAuthenticated = false; // 密码验证状态
+        let protectedAction = null; // 待执行的受保护操作
         
         // DOM元素
         const elements = {
@@ -545,7 +627,7 @@
             notificationIcon: document.getElementById('notificationIcon'),
             notificationMessage: document.getElementById('notificationMessage'),
             
-            // 新增的还款计划相关元素
+            // 还款计划相关元素
             paymentPlansBtn: document.getElementById('paymentPlansBtn'),
             paymentPlansModal: document.getElementById('paymentPlansModal'),
             closePaymentPlansBtn: document.getElementById('closePaymentPlansBtn'),
@@ -563,7 +645,25 @@
             paymentAlertBadge: document.getElementById('paymentAlertBadge'),
             deletePlanModal: document.getElementById('deletePlanModal'),
             cancelDeletePlanBtn: document.getElementById('cancelDeletePlanBtn'),
-            confirmDeletePlanBtn: document.getElementById('confirmDeletePlanBtn')
+            confirmDeletePlanBtn: document.getElementById('confirmDeletePlanBtn'),
+            
+            // 密码相关元素
+            passwordSettingsBtn: document.getElementById('passwordSettingsBtn'),
+            passwordModal: document.getElementById('passwordModal'),
+            passwordForm: document.getElementById('passwordForm'),
+            passwordInput: document.getElementById('passwordInput'),
+            rememberPassword: document.getElementById('rememberPassword'),
+            passwordError: document.getElementById('passwordError'),
+            forgotPasswordBtn: document.getElementById('forgotPasswordBtn'),
+            passwordSettingsModal: document.getElementById('passwordSettingsModal'),
+            passwordSettingsForm: document.getElementById('passwordSettingsForm'),
+            currentPassword: document.getElementById('currentPassword'),
+            newPassword: document.getElementById('newPassword'),
+            confirmPassword: document.getElementById('confirmPassword'),
+            currentPasswordGroup: document.getElementById('currentPasswordGroup'),
+            passwordSettingsError: document.getElementById('passwordSettingsError'),
+            passwordSettingsSuccess: document.getElementById('passwordSettingsSuccess'),
+            closePasswordSettingsBtn: document.getElementById('closePasswordSettingsBtn')
         };
         
         // 初始化
@@ -580,6 +680,12 @@
             loadTransactions();
             loadPaymentPlans();
             
+            // 检查密码设置状态
+            checkPasswordStatus();
+            
+            // 检查是否有记住的登录状态
+            checkRememberedAuth();
+            
             // 渲染交易记录表格和还款计划
             renderTransactions();
             renderPaymentPlans();
@@ -589,6 +695,13 @@
             
             // 初始化事件监听器
             initEventListeners();
+            
+            // 添加点击模态框外部关闭密码设置的功能
+            elements.passwordSettingsModal.addEventListener('click', function(e) {
+                if (e.target === elements.passwordSettingsModal) {
+                    hidePasswordSettings();
+                }
+            });
         }
         
         // 初始化事件监听器
@@ -617,7 +730,12 @@
             elements.prevPageBtn.addEventListener('click', goToPrevPage);
             elements.nextPageBtn.addEventListener('click', goToNextPage);
             
-            elements.statsBtn.addEventListener('click', showStats);
+            // 受保护的功能添加密码验证
+            elements.statsBtn.addEventListener('click', () => {
+                protectedAction = showStats;
+                checkAuthAndExecute();
+            });
+            
             elements.closeStatsBtn.addEventListener('click', hideStats);
             
             elements.timeFilterBtns.forEach(btn => {
@@ -632,13 +750,20 @@
                 });
             });
             
-            elements.exportBtn.addEventListener('click', exportData);
+            elements.exportBtn.addEventListener('click', () => {
+                protectedAction = exportData;
+                checkAuthAndExecute();
+            });
             
             elements.cancelDeleteBtn.addEventListener('click', hideDeleteModal);
             elements.confirmDeleteBtn.addEventListener('click', confirmDelete);
             
-            // 新增的还款计划相关事件监听器
-            elements.paymentPlansBtn.addEventListener('click', showPaymentPlans);
+            // 还款计划相关事件监听器（受保护）
+            elements.paymentPlansBtn.addEventListener('click', () => {
+                protectedAction = showPaymentPlans;
+                checkAuthAndExecute();
+            });
+            
             elements.closePaymentPlansBtn.addEventListener('click', hidePaymentPlans);
             
             elements.paymentPlanForm.addEventListener('submit', handlePaymentPlanSubmit);
@@ -646,6 +771,250 @@
             
             elements.cancelDeletePlanBtn.addEventListener('click', hideDeletePlanModal);
             elements.confirmDeletePlanBtn.addEventListener('click', confirmDeletePlan);
+            
+            // 密码相关事件监听器
+            elements.passwordSettingsBtn.addEventListener('click', () => {
+                showPasswordSettings();
+            });
+            
+            // 添加密码设置关闭按钮事件
+            elements.closePasswordSettingsBtn.addEventListener('click', hidePasswordSettings);
+            
+            elements.passwordForm.addEventListener('submit', handlePasswordVerification);
+            
+            // 添加忘记密码按钮事件
+            elements.forgotPasswordBtn.addEventListener('click', function() {
+                if (confirm('确定要重置密码吗？这将清除当前密码保护，您可以重新设置新密码。')) {
+                    // 清除本地存储的密码和认证状态
+                    localStorage.removeItem('expenseTrackerPassword');
+                    localStorage.removeItem('expenseTrackerAuth');
+                    
+                    // 更新状态
+                    isAuthenticated = false;
+                    checkPasswordStatus();
+                    
+                    // 关闭密码模态框
+                    elements.passwordModal.classList.add('hidden');
+                    
+                    // 显示密码设置页面
+                    showPasswordSettings();
+                    
+                    showNotification('密码已重置，请设置新密码', 'info');
+                }
+            });
+        }
+        
+        // 检查密码状态
+        function checkPasswordStatus() {
+            const hasPassword = localStorage.getItem('expenseTrackerPassword') !== null;
+            // 如果已有密码，显示当前密码输入框
+            elements.currentPasswordGroup.classList.toggle('hidden', !hasPassword);
+        }
+        
+        // 检查是否有记住的登录状态
+        function checkRememberedAuth() {
+            const rememberedAuth = localStorage.getItem('expenseTrackerAuth');
+            if (rememberedAuth === 'true') {
+                isAuthenticated = true;
+            }
+        }
+        
+        // 检查认证状态并执行操作
+        function checkAuthAndExecute() {
+            // 检查是否已设置密码
+            const hasPassword = localStorage.getItem('expenseTrackerPassword') !== null;
+            
+            // 如果还没有设置密码，提示用户先设置密码
+            if (!hasPassword) {
+                showNotification('请先设置密码以保护您的财务数据', 'info');
+                // 先保存要执行的操作，设置密码后再执行
+                const actionToPerform = protectedAction;
+                setTimeout(() => {
+                    showPasswordSettings();
+                    // 修改密码设置成功后的回调，执行原操作
+                    const originalSuccessHandler = elements.passwordSettingsForm.onsubmit;
+                    elements.passwordSettingsForm.onsubmit = function(e) {
+                        e.preventDefault();
+                        // 执行原始的密码设置逻辑
+                        const hasPassword = localStorage.getItem('expenseTrackerPassword') !== null;
+                        const currentPassword = elements.currentPassword.value;
+                        const newPassword = elements.newPassword.value;
+                        const confirmPassword = elements.confirmPassword.value;
+                        
+                        // 重置消息
+                        elements.passwordSettingsError.classList.add('hidden');
+                        elements.passwordSettingsSuccess.classList.add('hidden');
+                        
+                        // 验证新密码
+                        if (newPassword.length < 6) {
+                            showPasswordError('新密码长度至少为6位');
+                            return;
+                        }
+                        
+                        if (newPassword !== confirmPassword) {
+                            showPasswordError('两次输入的密码不一致');
+                            return;
+                        }
+                        
+                        // 如果已有密码，验证当前密码
+                        if (hasPassword) {
+                            const storedPasswordHash = localStorage.getItem('expenseTrackerPassword');
+                            if (hashPassword(currentPassword) !== storedPasswordHash) {
+                                showPasswordError('当前密码不正确');
+                                return;
+                            }
+                        }
+                        
+                        // 保存新密码
+                        localStorage.setItem('expenseTrackerPassword', hashPassword(newPassword));
+                        
+                        // 显示成功消息
+                        elements.passwordSettingsSuccess.textContent = '密码设置成功';
+                        elements.passwordSettingsSuccess.classList.remove('hidden');
+                        
+                        // 更新密码状态
+                        checkPasswordStatus();
+                        
+                        // 设置密码成功后，执行原来的操作
+                        isAuthenticated = true;
+                        actionToPerform();
+                        
+                        // 恢复原始的事件处理
+                        elements.passwordSettingsForm.onsubmit = originalSuccessHandler;
+                        
+                        // 关闭模态框
+                        setTimeout(hidePasswordSettings, 1500);
+                        
+                        showNotification('密码已更新', 'success');
+                    };
+                }, 1000);
+                return;
+            }
+            
+            // 如果已认证，直接执行操作
+            if (isAuthenticated) {
+                protectedAction();
+                return;
+            }
+            
+            // 否则显示密码验证框
+            elements.passwordInput.value = '';
+            elements.passwordError.classList.add('hidden');
+            elements.passwordModal.classList.remove('hidden');
+        }
+        
+        // 处理密码验证
+        function handlePasswordVerification(e) {
+            e.preventDefault();
+            
+            const enteredPassword = elements.passwordInput.value;
+            const storedPasswordHash = localStorage.getItem('expenseTrackerPassword');
+            
+            // 验证密码
+            if (hashPassword(enteredPassword) === storedPasswordHash) {
+                isAuthenticated = true;
+                
+                // 如果勾选了记住，保存状态
+                if (elements.rememberPassword.checked) {
+                    localStorage.setItem('expenseTrackerAuth', 'true');
+                }
+                
+                // 关闭密码框并执行受保护操作
+                elements.passwordModal.classList.add('hidden');
+                if (protectedAction) {
+                    // 使用setTimeout确保UI有足够时间更新
+                    setTimeout(() => {
+                        protectedAction();
+                        protectedAction = null;
+                    }, 100);
+                }
+                
+                showNotification('验证成功', 'success');
+            } else {
+                elements.passwordError.classList.remove('hidden');
+                elements.passwordInput.focus();
+            }
+        }
+        
+        // 显示密码设置
+        function showPasswordSettings() {
+            elements.currentPassword.value = '';
+            elements.newPassword.value = '';
+            elements.confirmPassword.value = '';
+            elements.passwordSettingsError.classList.add('hidden');
+            elements.passwordSettingsSuccess.classList.add('hidden');
+            elements.passwordSettingsModal.classList.remove('hidden');
+        }
+        
+        // 隐藏密码设置
+        function hidePasswordSettings() {
+            elements.passwordSettingsModal.classList.add('hidden');
+        }
+        
+        // 处理密码设置提交
+        elements.passwordSettingsForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const hasPassword = localStorage.getItem('expenseTrackerPassword') !== null;
+            const currentPassword = elements.currentPassword.value;
+            const newPassword = elements.newPassword.value;
+            const confirmPassword = elements.confirmPassword.value;
+            
+            // 重置消息
+            elements.passwordSettingsError.classList.add('hidden');
+            elements.passwordSettingsSuccess.classList.add('hidden');
+            
+            // 验证新密码
+            if (newPassword.length < 6) {
+                showPasswordError('新密码长度至少为6位');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                showPasswordError('两次输入的密码不一致');
+                return;
+            }
+            
+            // 如果已有密码，验证当前密码
+            if (hasPassword) {
+                const storedPasswordHash = localStorage.getItem('expenseTrackerPassword');
+                if (hashPassword(currentPassword) !== storedPasswordHash) {
+                    showPasswordError('当前密码不正确');
+                    return;
+                }
+            }
+            
+            // 保存新密码
+            localStorage.setItem('expenseTrackerPassword', hashPassword(newPassword));
+            
+            // 显示成功消息
+            elements.passwordSettingsSuccess.textContent = '密码设置成功';
+            elements.passwordSettingsSuccess.classList.remove('hidden');
+            
+            // 更新密码状态
+            checkPasswordStatus();
+            
+            // 3秒后关闭模态框
+            setTimeout(hidePasswordSettings, 1500);
+            
+            showNotification('密码已更新', 'success');
+        });
+        
+        // 显示密码设置错误
+        function showPasswordError(message) {
+            elements.passwordSettingsError.textContent = message;
+            elements.passwordSettingsError.classList.remove('hidden');
+        }
+        
+        // 简单的密码哈希函数
+        function hashPassword(password) {
+            let hash = 0;
+            for (let i = 0; i < password.length; i++) {
+                const char = password.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // 转换为32位整数
+            }
+            return Math.abs(hash).toString();
         }
         
         // 填充分类选择框
@@ -1203,6 +1572,7 @@
                 if (searchTerm && !transaction.description.toLowerCase().includes(searchTerm)) {
                     return false;
                 }
+                
                 
                 return true;
             });
